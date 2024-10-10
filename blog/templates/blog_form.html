@@ -3,6 +3,7 @@
 {% block content %}
 <div class="container mt-5">
     <h2 class="text-center">{% if object %}Edit Blog: {{ object.title }}{% else %}Create New Blog{% endif %}</h2>
+    {% if request.user.is_authenticated %}
     <form method="post">
         {% csrf_token %}
         
@@ -16,15 +17,17 @@
             {{ form.context }}  <!-- Render the content field -->
         </div>
 
-        <div class="mb-3">
-            <label for="id_tags" class="form-label">Tags:</label>
-            <select name="tags" id="id_tags" multiple class="form-control">
+        <div class="mb-5">
+            <label>Tags:</label>
+            <div id="tag-buttons">
                 {% for tag in tags %}
-                    <option value="{{ tag.id }}">
+                    <label class="btn btn-outline-primary {% if tag.id in selected_tags %}active{% endif %}">
+                        <input type="checkbox" name="tags" value="{{ tag.id }}" class="d-none"
+                            {% if tag.id in selected_tags %}checked{% endif %}>
                         {{ tag.name }}
-                    </option>
+                    </label>
                 {% endfor %}
-            </select>
+            </div>
             <small class="form-text text-muted">Hold down the Ctrl (Windows) or Command (Mac) button to select multiple options.</small>
         </div>
 
@@ -33,5 +36,21 @@
             <a href="{% url 'blog-list' %}" class="btn btn-secondary">Cancel</a>
         </div>
     </form>
+    {% else %}
+    <p>You must be logged in to create or edit blog posts.</p>
+    {% endif %}
 </div>
+
+<script>
+    // JavaScript to handle the toggling of tag button state
+    document.querySelectorAll('#tag-buttons .btn').forEach(button => {
+        button.addEventListener('click', function(event) {
+            event.preventDefault();  // Prevent the default label click behavior
+            this.classList.toggle('active');  // Toggle the active class
+
+            const input = this.querySelector('input');  // Get the hidden checkbox input
+            input.checked = !input.checked;  // Toggle the checked state of the checkbox
+        });
+    });
+</script>
 {% endblock %}
