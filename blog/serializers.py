@@ -8,7 +8,7 @@ class BlogSerializer(serializers.ModelSerializer):
 
     def to_representation(self, instance):
         representation = super().to_representation(instance)
-        representation['tags'] = TagSerializer(instance.tags.all(), many=True).data
+        representation['tags'] = [tag.name for tag in instance.tags.all()]
         return representation
 
 
