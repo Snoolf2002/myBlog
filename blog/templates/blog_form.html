@@ -1,0 +1,37 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container mt-5">
+    <h2 class="text-center">{% if object %}Edit Blog: {{ object.title }}{% else %}Create New Blog{% endif %}</h2>
+    <form method="post">
+        {% csrf_token %}
+        
+        <div class="mb-3">
+            <label for="id_title" class="form-label">Title:</label>
+            {{ form.title }}  <!-- Render the title field -->
+        </div>
+
+        <div class="mb-3">
+            <label for="id_context" class="form-label">Content:</label>
+            {{ form.context }}  <!-- Render the content field -->
+        </div>
+
+        <div class="mb-3">
+            <label for="id_tags" class="form-label">Tags:</label>
+            <select name="tags" id="id_tags" multiple class="form-control">
+                {% for tag in tags %}
+                    <option value="{{ tag.id }}">
+                        {{ tag.name }}
+                    </option>
+                {% endfor %}
+            </select>
+            <small class="form-text text-muted">Hold down the Ctrl (Windows) or Command (Mac) button to select multiple options.</small>
+        </div>
+
+        <div class="d-flex justify-content-between">
+            <button type="submit" class="btn btn-success">{% if object %}Update Blog{% else %}Create Blog{% endif %}</button>
+            <a href="{% url 'blog-list' %}" class="btn btn-secondary">Cancel</a>
+        </div>
+    </form>
+</div>
+{% endblock %}
