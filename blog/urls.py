@@ -2,16 +2,17 @@ from django.urls import path
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 from .views import (
                     BlogAPIView, BlogListView, BlogDetailView, BlogCreateView, BlogUpdateView, 
-                    BlogDeleteView, UserBlogListView, register
+                    BlogDeleteView, UserBlogListView, register, BlogDetailAPIView
                     )   
 
 urlpatterns = [
     path('api/token/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
     path('api/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
 
-    path('api/blogs/', BlogAPIView.as_view(), name='api-blog-list'),
-    path('api/blogs/<int:pk>/', BlogAPIView.as_view(), name='api-blog-detail'),
-
+    # For getting all blogs and creating a new blog
+    path('api/blogs/', BlogAPIView.as_view(), name='api-blogs'), 
+    path('api/blogs/<int:pk>/', BlogDetailAPIView.as_view(), name='api-blog-detail'),  
+    
     path('register/', register, name='register'),
     path('', BlogListView.as_view(), name='blog-list'),
     path('my-blogs/', UserBlogListView.as_view(), name='user-blog-list'),

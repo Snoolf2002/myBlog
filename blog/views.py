@@ -1,9 +1,9 @@
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
-from rest_framework.request import Request
 from rest_framework.permissions import AllowAny, IsAuthenticated
-from rest_framework_simplejwt.tokens import RefreshToken
+
+from drf_yasg.utils import swagger_auto_schema
 
 from django.views.generic import ListView, DetailView, CreateView, UpdateView, DeleteView
 from django.contrib.auth.models import User
@@ -11,62 +11,80 @@ from django.db.models.functions import TruncMonth
 from django.contrib import messages
 from .forms import UserRegistrationForm
 from django.urls import reverse_lazy
-from django.shortcuts import get_object_or_404
 from django.shortcuts import render
 from django.shortcuts import redirect
 
 from .models import Blog, Tag
 from .serializers import BlogSerializer
 from .forms import BlogForm
+from .utils import get_blog_or_404
+
 
 class BlogAPIView(APIView):
-    def get_all_blogs(self, request: Request, pk: int = None):
-        if pk is None:
-            blogs = Blog.objects.all()
-            serializer = BlogSerializer(blogs, many=True)
-            return Response(data=serializer.data, status=status.HTTP_200_OK)
-
-        # get single blog
-        blog = get_object_or_404(Blog, id=pk)
-        serializer = BlogSerializer(blog)
-        return Response(data=serializer.data, status=status.HTTP_200_OK)
-    
-    def get_own_blogs(self, request: Request) -> Response:
-        blogs = Blog.objects.filter(author=request.user)
+    @swagger_auto_schema(
+        operation_description="Retrieve all blogs",
+        responses={200: BlogSerializer(many=True)},
+        tags=['Blogs'],
+    )
+    def get(self, request):
+        blogs = Blog.objects.all()
         serializer = BlogSerializer(blogs, many=True)
         return Response(data=serializer.data, status=status.HTTP_200_OK)
 
-    def post(self, request: Request) -> Response:
-        if not request.user:
-            return Response(data={"message": "You must be logged in to create a blog"}, status=status.HTTP_401_UNAUTHORIZED)
-        
-        data = request.data
-        data['author'] = request.user.id
-        serializer = BlogSerializer(data=data)
+    @swagger_auto_schema(
+        operation_description="Create a new blog",
+        request_body=BlogSerializer,
+        responses={201: BlogSerializer},
+        tags=['Blogs'],
+    )
+    def post(self, request):
+        if not request.user.is_authenticated:
+            return Response(data={"message": "You must be logged in to create a blog."}, status=status.HTTP_401_UNAUTHORIZED)
+        request.data['author'] = request.user.id
+        serializer = BlogSerializer(data=request.data)
+
         if serializer.is_valid():
             serializer.save()
             return Response(data=serializer.data, status=status.HTTP_201_CREATED)
         return Response(data=serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    
 
-    def put(self, request: Request, pk: int) -> Response:
-        blog = get_object_or_404(Blog, id=pk)
-        if blog.author != request.user:
-            return Response(data={"message": "This blog does not belong to you"}, status=status.HTTP_401_UNAUTHORIZED)
+class BlogDetailAPIView(APIView):
+    @swagger_auto_schema(
+        operation_description="Get a specific blog",
+        responses={200: BlogSerializer},
+        tags=['Blogs'],
+    )
+    def get(self, request, pk):
+        blog = get_blog_or_404(pk)
+        serializer = BlogSerializer(blog)
+        return Response(data=serializer.data, status=status.HTTP_200_OK)
 
+    @swagger_auto_schema(
+        operation_description="Retrieve a specific blog",
+        responses={200: BlogSerializer},
+        tags=['Blogs'],
+    )
+    def put(self, request, pk):
+        blog = get_blog_or_404(pk)
+        if request.user != blog.author:
+            return Response(data={"message": "You do not have permission to edit this blog."}, status=status.HTTP_403_FORBIDDEN)
+        
         serializer = BlogSerializer(blog, data=request.data, partial=True)
-        if serializer.is_valid():
-            serializer.save()
-            return Response(data=serializer.data, status=status.HTTP_200_OK)
-        return Response(data=serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        return Response(data=serializer.data, status=status.HTTP_200_OK)
 
-    def delete(self, request: Request, pk: int) -> Response:
-        blog = get_object_or_404(Blog, id=pk)
-        if blog.author != request.user:
-            return Response(data={"message": "This blog does not belong to you"}, status=status.HTTP_401_UNAUTHORIZED)
-        
+    @swagger_auto_schema(
+        operation_description="Delete a blog post",
+        responses={204: "No Content"},
+        tags=['Blogs'],
+    )
+    def delete(self, request, pk):
+        blog = get_blog_or_404(pk)
+        if request.user != blog.author:
+            return Response(data={"message": "You do not have permission to delete this blog."}, status=status.HTTP_403_FORBIDDEN)
+
         blog.delete()
-        return Response(data={"message": "Blog deleted successfully"}, status=status.HTTP_204_NO_CONTENT)
-        
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
 # Django HTML Views
 class BlogListView(ListView):
@@ -106,7 +124,6 @@ class UserBlogListView(ListView):
 
     def get_queryset(self):
         queryset = Blog.objects.filter(author=self.request.user).annotate(published_month=TruncMonth('published_date')).order_by('-published_month', '-published_date')
-
         return queryset
     
 
@@ -161,7 +178,6 @@ class BlogUpdateView(UpdateView):
         return response
 
 
-
 class BlogDeleteView(DeleteView):
     model = Blog
     template_name = 'blog_confirm_delete.html'
@@ -174,7 +190,7 @@ class BlogDeleteView(DeleteView):
             return render(request, 'errors/permission_denied.html', status=403)
         return super().dispatch(request, *args, **kwargs)
     
-
+# registration
 def register(request):
     form = UserRegistrationForm()
     if request.method == 'POST':
@@ -191,7 +207,6 @@ def register(request):
             messages.success(request, 'Registration successful! You can now log in.')
             return redirect('login')
         else:
-            # This will display any form errors on the page
             messages.error(request, 'Please correct the errors below.')
     
     return render(request, 'registration/register.html', {'form': form})
