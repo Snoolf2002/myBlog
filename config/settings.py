@@ -41,7 +41,9 @@ INSTALLED_APPS = [
     # DRF
     'rest_framework',
     'rest_framework_simplejwt.token_blacklist',
-    
+    # Swagger
+    'drf_yasg',
+    # my apps
     'blog',
 ]
 
