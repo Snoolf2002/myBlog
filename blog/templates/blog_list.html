@@ -1,0 +1,70 @@
+{% extends 'base.html' %}
+
+{% block title %}Blogs{% endblock %}
+
+{% block content %}
+<h2>Blogs</h2>
+
+<form method="get" class="mb-4">
+    <div class="form-row">
+        <div class="form-group col-md-4">
+            <label for="tag">Filter by Tag:</label>
+            <select name="tag" id="tag" class="form-control">
+                <option value="">All Tags</option>
+                {% for tag in tags %}
+                    <option value="{{ tag.id }}" {% if request.GET.tag == tag.id|stringformat:"i" %}selected{% endif %}>{{ tag.name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="form-group col-md-4">
+            <label for="author">Filter by Author:</label>
+            <select name="author" id="author" class="form-control">
+                <option value="">All Authors</option>
+                {% for author in authors %}
+                    <option value="{{ author.id }}" {% if request.GET.author == author.id|stringformat:"i" %}selected{% endif %}>{{ author.last_name }} {{ author.first_name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="form-group col-md-4">
+            <label>&nbsp;</label>
+            <button type="submit" class="btn btn-primary btn-block">Filter</button>
+        </div>
+    </div>
+</form>
+
+{% if blogs %}
+    <div class="blog-list">
+    {% regroup blogs by published_month as blog_groups %}
+
+    {% for group in blog_groups %}
+        <h3 class="mt-4">{{ group.grouper|date:"F Y" }}</h3>
+        <table class="table table-striped">
+            <thead>
+                <tr>
+                    <th>Title</th>
+                    <th>Author</th>
+                    <th>Published</th>
+                    <th>Tags</th> <!-- New column for Tags -->
+                </tr>
+            </thead>
+            <tbody>
+                {% for blog in group.list %}
+                    <tr>
+                        <td><a href="{% url 'blog-detail' blog.id %}">{{ blog.title }}</a></td>
+                        <td>{{ blog.author.last_name }} {{ blog.author.first_name }}</td>
+                        <td>{{ blog.published_date|date:"F j, Y" }}</td>
+                        <td>
+                            {% for tag in blog.tags.all %}
+                                <span class="badge bg-info p-2">{{ tag.name }}</span> <!-- Display tags -->
+                            {% endfor %}
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    {% endfor %}
+    </div>
+{% else %}
+    <p>No blog posts available.</p>
+{% endif %}
+{% endblock %}

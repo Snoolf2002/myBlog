@@ -20,29 +20,52 @@
         .content {
             flex: 1; /* Take remaining space */
         }
+        /* styles.css or your main CSS file */
+        .errorlist {
+            color: red;  /* Set text color to red */
+            margin-top: 0.5rem;  /* Add some space above the error message */
+        }
     </style>
 </head>
 <body>
     <div class="wrapper">
         <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
             <div class="container">
-                <a class="navbar-brand" href="{% url 'blog-list' %}">My Blogs</a>
+                <a class="navbar-brand" href="{% url 'blog-list' %}">Blogs</a>
                 <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
                     <span class="navbar-toggler-icon"></span>
                 </button>
                 <div class="collapse navbar-collapse" id="navbarNav">
-                    <ul class="navbar-nav ms-auto">
+                    <ul class="navbar-nav me-auto"> <!-- Align "My Blogs" to the left -->
+                        {% if user.is_authenticated %}
                         <li class="nav-item">
-                            <a class="nav-link" href="{% url 'blog-list' %}">Home</a>
+                            <a class="nav-link" href="{% url 'user-blog-list' %}">My Blogs</a>
                         </li>
                         <li class="nav-item">
                             <a class="nav-link" href="{% url 'blog-create' %}">Create Blog</a>
                         </li>
+                        <li class="nav-item">
+                            <form action="{% url 'logout' %}" method="post" style="display: inline;">
+                                {% csrf_token %}
+                                <button type="submit" class="btn btn-link nav-link">Logout</button>
+                            </form>
+                        </li>
+                        {% endif %}
+                    </ul>
+                    <ul class="navbar-nav"> <!-- Align "Login" and "Register" to the right -->
+                        {% if not user.is_authenticated %}
+                        <li class="nav-item">
+                            <a class="nav-link" href="{% url 'login' %}">Login</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="{% url 'register' %}">Register</a>
+                        </li>
+                        {% endif %}
                     </ul>
                 </div>
             </div>
-        </nav>        
-
+        </nav>
+  
         <div class="content">
             <div class="container mt-4">
                 {% block content %}{% endblock %}

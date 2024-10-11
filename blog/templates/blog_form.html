@@ -1,5 +1,7 @@
 {% extends 'base.html' %}
 
+{% block title %}Form{% endblock %}
+
 {% block content %}
 <div class="container mt-5">
     <h2 class="text-center">{% if object %}Edit Blog: {{ object.title }}{% else %}Create New Blog{% endif %}</h2>

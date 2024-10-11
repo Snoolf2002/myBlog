@@ -1,0 +1,46 @@
+{% extends 'base.html' %}
+
+{% block title %}My Blogs{% endblock %}
+
+{% block content %}
+<h2>My Blogs</h2>
+
+{% if blogs %}
+<div class="blog-list">
+    {% regroup blogs by published_month as blog_groups %}
+    
+    {% for group in blog_groups %}
+        <h3 class="mt-4">{{ group.grouper|date:"F Y" }}</h3>
+        <table class="table table-striped">
+            <thead>
+                <tr>
+                    <th>Title</th>
+                    <th>Published</th>
+                    <th>Actions</th>
+                    <th>Tags</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for blog in group.list %}
+                    <tr>
+                        <td><a href="{% url 'blog-detail' blog.id %}">{{ blog.title }}</a></td>
+                        <td>{{ blog.published_date|date:"F j, Y" }}</td>
+                        <td>
+                            {% for tag in blog.tags.all %}
+                                <span class="badge bg-info p-2">{{ tag.name }}</span> <!-- Display tags -->
+                            {% endfor %}
+                        </td>
+                        <td>
+                            <a href="{% url 'blog-edit' blog.id %}" class="btn btn-sm btn-primary">Edit</a>
+                            <a href="{% url 'blog-delete' blog.id %}" class="btn btn-sm btn-danger">Delete</a>
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    {% endfor %}
+</div>
+{% else %}
+    <p>No blog posts available.</p>
+{% endif %}
+{% endblock %}

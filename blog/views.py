@@ -2,12 +2,18 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.request import Request
+from rest_framework.permissions import AllowAny, IsAuthenticated
+from rest_framework_simplejwt.tokens import RefreshToken
 
-from django.shortcuts import render
 from django.views.generic import ListView, DetailView, CreateView, UpdateView, DeleteView
-from django.shortcuts import get_object_or_404
-from django.urls import reverse_lazy
 from django.contrib.auth.models import User
+from django.db.models.functions import TruncMonth
+from django.contrib import messages
+from .forms import UserRegistrationForm
+from django.urls import reverse_lazy
+from django.shortcuts import get_object_or_404
+from django.shortcuts import render
+from django.shortcuts import redirect
 
 from .models import Blog, Tag
 from .serializers import BlogSerializer
@@ -60,17 +66,17 @@ class BlogAPIView(APIView):
         
         blog.delete()
         return Response(data={"message": "Blog deleted successfully"}, status=status.HTTP_204_NO_CONTENT)
-
+        
 
 # Django HTML Views
 class BlogListView(ListView):
     model = Blog
-    template_name = 'index.html'
+    template_name = 'blog_list.html'
     context_object_name = 'blogs'
-    ordering = ['-published_date']
+    permission_classes = [AllowAny]
 
     def get_queryset(self):
-        queryset = Blog.objects.all()
+        queryset = Blog.objects.all().annotate(published_month=TruncMonth('published_date')).order_by('-published_month', '-published_date')
 
         # Filter by tag
         tag_id = self.request.GET.get('tag')
@@ -87,21 +93,35 @@ class BlogListView(ListView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context['tags'] = Tag.objects.all()  # List of all tags
-        context['authors'] = User.objects.all()  # List of all authors
+        context['authors'] = User.objects.all()
+        
         return context
+    
 
+class UserBlogListView(ListView):
+    model = Blog
+    template_name = 'user_blog_list.html'
+    context_object_name = 'blogs'
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        queryset = Blog.objects.filter(author=self.request.user).annotate(published_month=TruncMonth('published_date')).order_by('-published_month', '-published_date')
+
+        return queryset
+    
 
 class BlogDetailView(DetailView):
     model = Blog
     template_name = 'blog_detail.html'
     context_object_name = 'blog'
-
+    permission_classes = [AllowAny]
 
 class BlogCreateView(CreateView):
     model = Blog
     form_class = BlogForm
     template_name = 'blog_form.html'
     success_url = reverse_lazy('blog-list')
+    permission_classes = [IsAuthenticated]
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -120,6 +140,7 @@ class BlogUpdateView(UpdateView):
     form_class = BlogForm
     template_name = 'blog_form.html'
     success_url = reverse_lazy('blog-list')
+    permission_classes = [IsAuthenticated]
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -145,9 +166,32 @@ class BlogDeleteView(DeleteView):
     model = Blog
     template_name = 'blog_confirm_delete.html'
     success_url = '/'
+    permission_classes = [IsAuthenticated]
 
     def dispatch(self, request, *args, **kwargs):
         blog = self.get_object()
         if blog.author != request.user:
             return render(request, 'errors/permission_denied.html', status=403)
         return super().dispatch(request, *args, **kwargs)
+    
+
+def register(request):
+    form = UserRegistrationForm()
+    if request.method == 'POST':
+        form = UserRegistrationForm(request.POST)
+
+        if form.is_valid():
+            user = User(
+                username=form.cleaned_data['username'],
+                first_name=form.cleaned_data['first_name'],
+                last_name=form.cleaned_data['last_name'],
+            )
+            user.set_password(form.cleaned_data['password'])  # Hash the password
+            user.save()
+            messages.success(request, 'Registration successful! You can now log in.')
+            return redirect('login')
+        else:
+            # This will display any form errors on the page
+            messages.error(request, 'Please correct the errors below.')
+    
+    return render(request, 'registration/register.html', {'form': form})
