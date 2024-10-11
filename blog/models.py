@@ -17,4 +17,4 @@ class Blog(models.Model):
     published_date = models.DateTimeField(auto_now_add=True)
 
     def __str__(self) -> str:
-        return f"{self.title} by {self.author}"
+        return f"{self.title} by {self.author.last_name} {self.author.first_name}"
