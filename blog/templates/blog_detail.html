@@ -6,18 +6,18 @@
 <div class="container mt-4">
     <h1 class="display-4">{{ blog.title }}</h1>
     <p class="text-muted">Published on {{ blog.published_date|date:"F j, Y" }}</p>
+    <div class="tags mt-4">
+        <h5>Tags:</h5>
+        {% for tag in blog.tags.all %}
+            <span class="badge badge-info p-2">{{ tag.name }}</span>
+        {% endfor %}
+    </div>
     
     <div class="blog-content">
         <p>{{ blog.context|linebreaks }}</p> <!-- Using linebreaks filter for formatting -->
     </div>
 
-    <div class="tags mt-4">
-        <h5>Tags:</h5>
-        {% for tag in blog.tags.all %}
-            <span class="badge badge-info">{{ tag.name }}</span>
-        {% endfor %}
-    </div>
-
+    {% if user == blog.author %}
     <div class="mt-4">
         <a href="{% url 'blog-list' %}" class="btn btn-primary">Back to Blog List</a>
         <a href="{% url 'blog-edit' blog.id %}" class="btn btn-secondary">Edit Blog</a>
@@ -26,5 +26,6 @@
             <button type="submit" class="btn btn-danger">Delete Blog</button>
         </form>
     </div>
+    {% endif %} 
 </div>
 {% endblock %}
