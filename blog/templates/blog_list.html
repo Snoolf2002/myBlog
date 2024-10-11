@@ -5,11 +5,11 @@
 {% block content %}
 <h2>Blogs</h2>
 
-<form method="get" class="mb-4">
+<form method="get" class="mb-4" id="filter-form">
     <div class="form-row">
         <div class="form-group col-md-4">
             <label for="tag">Filter by Tag:</label>
-            <select name="tag" id="tag" class="form-control">
+            <select name="tag" id="tag" class="form-control" onchange="this.form.submit()">
                 <option value="">All Tags</option>
                 {% for tag in tags %}
                     <option value="{{ tag.id }}" {% if request.GET.tag == tag.id|stringformat:"i" %}selected{% endif %}>{{ tag.name }}</option>
@@ -18,19 +18,26 @@
         </div>
         <div class="form-group col-md-4">
             <label for="author">Filter by Author:</label>
-            <select name="author" id="author" class="form-control">
+            <select name="author" id="author" class="form-control" onchange="this.form.submit()">
                 <option value="">All Authors</option>
                 {% for author in authors %}
                     <option value="{{ author.id }}" {% if request.GET.author == author.id|stringformat:"i" %}selected{% endif %}>{{ author.last_name }} {{ author.first_name }}</option>
                 {% endfor %}
             </select>
         </div>
-        <div class="form-group col-md-4">
-            <label>&nbsp;</label>
-            <button type="submit" class="btn btn-primary btn-block">Filter</button>
+        <div class="form-group col-md-4 d-flex align-items-end">
+            <button type="button" class="btn btn-secondary me-2" onclick="clearFilters()">Clear Filters</button>
         </div>
     </div>
 </form>
+
+<script>
+    function clearFilters() {
+        document.getElementById('tag').selectedIndex = 0;
+        document.getElementById('author').selectedIndex = 0;
+        document.getElementById('filter-form').submit();
+    }
+</script>
 
 {% if blogs %}
     <div class="blog-list">
