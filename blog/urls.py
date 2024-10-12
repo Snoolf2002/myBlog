@@ -10,8 +10,8 @@ urlpatterns = [
     path('api/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
 
     # For getting all blogs and creating a new blog
-    path('api/blogs/', BlogAPIView.as_view(), name='api-blogs'), 
-    path('api/blogs/<int:pk>/', BlogDetailAPIView.as_view(), name='api-blog-detail'),  
+    path('api/blogs/', BlogAPIView.as_view({'get': 'get_all', 'post': 'post'}), name='api-blogs'), 
+    path('api/blogs/<int:pk>/', BlogDetailAPIView.as_view({'get': 'get', 'put': 'put', 'delete': 'delete'}), name='api-blog-detail'),  
     
     path('register/', register, name='register'),
     path('', BlogListView.as_view(), name='blog-list'),
