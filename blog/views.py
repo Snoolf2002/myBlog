@@ -1,33 +1,96 @@
-from rest_framework.views import APIView
+from rest_framework.viewsets import ViewSet
 from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.permissions import AllowAny, IsAuthenticated
-
-from drf_yasg.utils import swagger_auto_schema
 
 from django.views.generic import ListView, DetailView, CreateView, UpdateView, DeleteView
 from django.contrib.auth.models import User
 from django.db.models.functions import TruncMonth
 from django.contrib import messages
-from .forms import UserRegistrationForm
+from django.db.models import Q
 from django.urls import reverse_lazy
-from django.shortcuts import render
-from django.shortcuts import redirect
+from django.shortcuts import render, redirect
+
+from drf_yasg.utils import swagger_auto_schema
+from drf_yasg import openapi
 
 from .models import Blog, Tag
-from .serializers import BlogSerializer
-from .forms import BlogForm
+from .serializers import BlogSerializer, BlogFilterSerializer
+from .forms import BlogForm, UserRegistrationForm
 from .utils import get_blog_or_404
 
 
-class BlogAPIView(APIView):
+class BlogAPIView(ViewSet):
     @swagger_auto_schema(
-        operation_description="Retrieve all blogs",
+        operation_description="Get all blogs with optional filters (start_date, end_date, tag, user)",
+        responses={200: BlogSerializer(many=True)},
+        manual_parameters=[
+            openapi.Parameter(
+                'start_date', openapi.IN_QUERY, 
+                description="Filter blogs created on or after this date (format: YYYY-MM-DD)",
+                type=openapi.TYPE_STRING,
+                format=openapi.FORMAT_DATE,
+            ),
+            openapi.Parameter(
+                'end_date', openapi.IN_QUERY, 
+                description="Filter blogs created on or before this date (format: YYYY-MM-DD)",
+                type=openapi.TYPE_STRING,
+                format=openapi.FORMAT_DATE,
+            ),
+            openapi.Parameter(
+                'tag', openapi.IN_QUERY, 
+                description="Filter blogs by tag name (case-insensitive)",
+                type=openapi.TYPE_STRING,
+            ),
+            openapi.Parameter(
+                'user', openapi.IN_QUERY, 
+                description="Filter blogs by author's username or first name or last name (case-insensitive)",
+                type=openapi.TYPE_STRING,
+            ),
+        ],
+        tags=['Blogs'],
+    )
+    def get_all(self, request):
+        filter_serializer = BlogFilterSerializer(data=request.query_params)
+        filter_serializer.is_valid(raise_exception=True)
+        filters = filter_serializer.validated_data
+        blogs = Blog.objects.all()
+
+        if 'start_date' in filters:
+            blogs = blogs.filter(published_date__date__gte=filters['start_date'])
+        if 'end_date' in filters:
+            blogs = blogs.filter(published_date__date__lte=filters['end_date'])
+        if 'tag' in filters:
+            blogs = blogs.filter(tags__name__icontains=filters['tag'])
+        if 'user' in filters:
+            user_param = filters['user']
+            blogs = blogs.filter(Q(author__first_name__icontains=user_param) | Q(author__last_name__icontains=user_param) \
+                                 | Q(author__username__icontains=user_param))
+        serializer = BlogSerializer(blogs, many=True)
+        return Response(data=serializer.data, status=status.HTTP_200_OK)
+    
+    @swagger_auto_schema(
+        operation_description="Get user's blogs with optional filters (start_date, end_date, tag)",
         responses={200: BlogSerializer(many=True)},
         tags=['Blogs'],
     )
-    def get(self, request):
-        blogs = Blog.objects.all()
+    def get_user_blogs(self, request):
+        filter_serializer = BlogFilterSerializer(data=request.query_params)
+        filter_serializer.is_valid(raise_exception=True)
+        filters = filter_serializer.validated_data
+
+        if not request.user.is_authenticated:
+            return Response(data={"message": "You must be logged in to view your blogs."}, status=status.HTTP_401_UNAUTHORIZED)
+        
+        blogs = Blog.objects.filter(author=request.user)
+
+        if 'start_date' in filters:
+            blogs = blogs.filter(published_date__date__gte=filters['start_date'])
+        if 'end_date' in filters:
+            blogs = blogs.filter(published_date__date__lte=filters['end_date'])
+        if 'tag' in filters:
+            blogs = blogs.filter(tags__name__icontains=filters['tag'])
+
         serializer = BlogSerializer(blogs, many=True)
         return Response(data=serializer.data, status=status.HTTP_200_OK)
 
@@ -49,7 +112,7 @@ class BlogAPIView(APIView):
         return Response(data=serializer.errors, status=status.HTTP_400_BAD_REQUEST)
     
 
-class BlogDetailAPIView(APIView):
+class BlogDetailAPIView(ViewSet):
     @swagger_auto_schema(
         operation_description="Get a specific blog",
         responses={200: BlogSerializer},
@@ -62,6 +125,7 @@ class BlogDetailAPIView(APIView):
 
     @swagger_auto_schema(
         operation_description="Retrieve a specific blog",
+        request_body=BlogSerializer,
         responses={200: BlogSerializer},
         tags=['Blogs'],
     )
@@ -86,7 +150,9 @@ class BlogDetailAPIView(APIView):
         blog.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
 
+
 # Django HTML Views
+# Views for Templates
 class BlogListView(ListView):
     model = Blog
     template_name = 'blog_list.html'
