@@ -7,7 +7,8 @@ db.sqlite3
 media
 
 # Migrations
-**/migrations/*
+**/migrations/*.py
+!**/migrations/__init__.py
 
 # Backup files # 
 *.bak 
