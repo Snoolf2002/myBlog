@@ -21,7 +21,7 @@
             <select name="author" id="author" class="form-control" onchange="this.form.submit()">
                 <option value="">All Authors</option>
                 {% for author in authors %}
-                    <option value="{{ author.id }}" {% if request.GET.author == author.id|stringformat:"i" %}selected{% endif %}>{{ author.last_name }} {{ author.first_name }}</option>
+                    <option value="{{ author.id }}" {% if request.GET.author == author.id|stringformat:"i" %}selected{% endif %}>{{ author.first_name }} {{ author.last_name }}</option>
                 {% endfor %}
             </select>
         </div>
@@ -58,7 +58,7 @@
                 {% for blog in group.list %}
                     <tr>
                         <td><a href="{% url 'blog-detail' blog.id %}">{{ blog.title }}</a></td>
-                        <td>{{ blog.author.last_name }} {{ blog.author.first_name }}</td>
+                        <td>{{ blog.author.first_name }} {{ blog.author.last_name }}</td>
                         <td>{{ blog.published_date|date:"F j, Y" }}</td>
                         <td>
                             {% for tag in blog.tags.all %}
